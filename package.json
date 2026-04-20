@@ -8,7 +8,7 @@
   "keywords": ["table", "tanstack", "react", "filters", "datagrid"],
   "author": "xeplr",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/xeplr/xeplr" },
+  "repository": { "type": "git", "url": "https://github.com/Xeplr/xeplr-ui-table" },
   "publishConfig": { "access": "public" },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
