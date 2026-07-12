@@ -30,3 +30,7 @@ export { resolve as resolveOperator, resolveString, resolveNumber, resolveDate, 
 
 // Conditional formatting
 export { resolveCellStyle } from './resolveCellStyle.js';
+
+// Cell renderers (config-driven)
+export { default as renderers } from './renderers/index.js';
+export { avatarName, tags, currency, memberChips, twoLine, statusBadge, dateDisplay, link } from './renderers/index.js';

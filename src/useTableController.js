@@ -14,6 +14,7 @@ import { stringFilterFn } from './filters/StringFilter.jsx';
 import { numberFilterFn } from './filters/NumberFilter.jsx';
 import { dateFilterFn } from './filters/DateFilter.jsx';
 import { booleanFilterFn } from './filters/BooleanFilter.jsx';
+import renderers from './renderers/index.js';
 
 var filterFnMap = {
   [TYPES.STRING]: stringFilterFn,
@@ -82,7 +83,17 @@ export default function useTableController(options) {
         enableSorting: col.enableSorting !== false,
         enableColumnFilter: col.enableColumnFilter !== false
       };
-      if (col.cell) colDef.cell = col.cell;
+      if (col.cell) {
+        colDef.cell = col.cell;
+      } else if (col.render) {
+        var rendererName = typeof col.render === 'string' ? col.render : col.render.type;
+        var rendererFn = renderers[rendererName];
+        if (!rendererFn) {
+          throw new Error('[xeplr-ui-table] Unknown renderer "' + rendererName + '". Available: ' + Object.keys(renderers).join(', '));
+        }
+        var rendererConfig = typeof col.render === 'string' ? {} : col.render;
+        colDef.cell = rendererFn(rendererConfig);
+      }
       return columnHelper.accessor(col.accessor, colDef);
     });
   }, [columns, detectedTypes]);
