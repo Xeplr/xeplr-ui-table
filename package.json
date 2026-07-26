@@ -1,15 +1,28 @@
 {
   "name": "@xeplr/ui-table",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Controlled TanStack Table wrapper with auto-detected column types and smart filters",
   "type": "module",
   "main": "src/index.js",
-  "files": ["src/"],
-  "keywords": ["table", "tanstack", "react", "filters", "datagrid"],
+  "files": [
+    "src/"
+  ],
+  "keywords": [
+    "table",
+    "tanstack",
+    "react",
+    "filters",
+    "datagrid"
+  ],
   "author": "xeplr",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/Xeplr/xeplr-ui-table" },
-  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xeplr/xeplr-ui-table"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "@tanstack/react-table": "^8.0.0"
