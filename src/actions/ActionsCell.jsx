@@ -2,7 +2,15 @@ import React from 'react';
 
 /**
  * Actions cell rendered in the last column of each row.
- * Shows view (always), copy, edit (if onSave), delete (if onDelete).
+ *
+ * Two modes:
+ *  - props.rowActions given: renders exactly those custom actions, firing
+ *    immediately via each action's own onClick (no staged CRUD queue).
+ *  - otherwise: the built-in set — view (always), copy, edit (if onSave),
+ *    delete (if onDelete) — driven by the table's onCommit staged queue.
+ *
+ * @param {Array<{key: string, label: string, icon?: any, onClick: (row) => void,
+ *   visible?: (row) => boolean, disabled?: (row) => boolean, variant?: string}>} [props.rowActions]
  */
 export default function ActionsCell(props) {
   var row = props.row;
@@ -12,6 +20,33 @@ export default function ActionsCell(props) {
   var onCopy = props.onCopy;
   var onEdit = props.onEdit;
   var onDelete = props.onDelete;
+  var rowActions = props.rowActions;
+
+  if (rowActions && rowActions.length > 0) {
+    return (
+      <div className="xeplr-table-actions-cell">
+        {rowActions.map(function(action) {
+          if (action.visible && !action.visible(row)) return null;
+          var disabled = action.disabled ? action.disabled(row) : false;
+          var className = 'xeplr-table-action-btn xeplr-table-action-' + action.key
+            + (action.icon ? '' : ' xeplr-table-action-label')
+            + (action.variant ? ' xeplr-table-action-' + action.variant : '');
+          return (
+            <button
+              key={action.key}
+              type="button"
+              className={className}
+              title={action.label}
+              disabled={disabled}
+              onClick={function() { action.onClick(row); }}
+            >
+              {action.icon || action.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="xeplr-table-actions-cell">

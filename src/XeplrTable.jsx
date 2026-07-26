@@ -41,6 +41,11 @@ var CHILD_DISPLAY = { POPUP: 'popup', INNER: 'inner' };
  * @param {boolean}        [props.enablePagination] - Default: true
  * @param {string}         [props.className]        - Additional CSS class
  * @param {Function}       [props.onCommit]         - async (changeSet[]) => void
+ * @param {Array<{key: string, label: string, icon?: any, onClick: (row) => void,
+ *   visible?: (row) => boolean, disabled?: (row) => boolean, variant?: string}>} [props.rowActions]
+ *   - Custom per-row action buttons (e.g. Rollback, Delete), replacing the built-in
+ *     view/copy/edit/delete set. Fires immediately via each action's onClick — works
+ *     standalone, without onCommit.
  */
 export default function XeplrTable(props) {
   var schema = props.schema || {};
@@ -85,10 +90,12 @@ export default function XeplrTable(props) {
   // Show expand column only in inner mode
   var showExpandCol = hasChildren && useInner;
 
+  var hasRowActions = actions.hasActions || !!(props.rowActions && props.rowActions.length > 0);
+
   var totalColumns = headerGroups[0]?.headers.length || 1;
   if (showExpandCol) totalColumns++;
   if (actions.hasDelete) totalColumns++;
-  if (actions.hasActions) totalColumns++;
+  if (hasRowActions) totalColumns++;
 
   // Resolve modal schema columns for form hints
   var modalSchemaColumns = columns;
@@ -187,7 +194,7 @@ export default function XeplrTable(props) {
                       </th>
                     );
                   })}
-                  {actions.hasActions && (
+                  {hasRowActions && (
                     <th className="xeplr-table-th xeplr-table-th-actions">
                       <div className="xeplr-table-header-cell">
                         <span className="xeplr-table-header-label">Actions</span>
@@ -247,9 +254,10 @@ export default function XeplrTable(props) {
                       </td>
                     );
                   })}
-                  {actions.hasActions && (
+                  {hasRowActions && (
                     <td className="xeplr-table-td xeplr-table-td-actions">
                       <ActionsCell row={original} hasSave={actions.hasSave} hasDelete={actions.hasDelete}
+                        rowActions={props.rowActions}
                         onView={function() { usePopup ? actions.openDetail(original) : actions.openView(original); }}
                         onCopy={actions.openCopy} onEdit={actions.openEdit}
                         onDelete={function() { actions.handleDeleteRow(rowId); }} />
