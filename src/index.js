@@ -21,6 +21,7 @@ export { default as RecordModal } from './actions/RecordModal.jsx';
 export { default as ChildTable } from './actions/ChildTable.jsx';
 export { default as RecordDetail } from './actions/RecordDetail.jsx';
 export { CHILD_DISPLAY } from './XeplrTable.jsx';
+export { default as CellZoom } from './CellZoom.jsx';
 
 // Change set builder
 export { buildChangeSet } from './buildChangeSet.js';
@@ -30,6 +31,19 @@ export { resolve as resolveOperator, resolveString, resolveNumber, resolveDate, 
 
 // Conditional formatting
 export { resolveCellStyle } from './resolveCellStyle.js';
+
+// Style vocabulary + layer resolution (theme -> overrides)
+export {
+  STYLE_GROUPS, STYLE_FIELDS, BORDER_SIDES, styleField, cssLength,
+  flattenStyle, resolveStyle, toCssProperties, resolveCellCss
+} from './tableStyles.js';
+
+// Content-based column widths
+export { default as useColumnWidths } from './useColumnWidths.js';
+export {
+  measureColumnDemand, allocateColumnWidths, resolvePercentWidths, longestToken,
+  WIDTH_NATURAL, WIDTH_SHRUNK, WIDTH_FLOOR
+} from './columnWidths.js';
 
 // Cell renderers (config-driven)
 export { default as renderers } from './renderers/index.js';

@@ -4,6 +4,9 @@
   "description": "Controlled TanStack Table wrapper with auto-detected column types and smart filters",
   "type": "module",
   "main": "src/index.js",
+  "scripts": {
+    "test": "for f in test/*.test.js; do node \"$f\" || exit 1; done"
+  },
   "files": [
     "src/"
   ],

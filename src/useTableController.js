@@ -25,12 +25,27 @@ var filterFnMap = {
 
 var columnHelper = createColumnHelper();
 
+// A column def may itself be a GROUP — `{ header, columns: [...] }` instead of
+// `{ accessor, ... }` — which becomes a spanning header cell over its
+// children (a pivoted date over the measures under it), same as Excel merges
+// a date across the columns it covers. Optional and recursive: a caller that
+// never nests columns gets exactly the flat header it always got.
+function flattenLeaves(cols) {
+  var out = [];
+  for (var i = 0; i < cols.length; i++) {
+    var col = cols[i];
+    if (col.columns && col.columns.length) out = out.concat(flattenLeaves(col.columns));
+    else out.push(col);
+  }
+  return out;
+}
+
 /**
  * Hook that wires TanStack Table with auto-detected column types and smart filters.
  *
  * @param {object} options
  * @param {Array<object>}  options.data               - Row array
- * @param {Array<object>}  options.columns             - [{ accessor, header, dataType?, cell? }]
+ * @param {Array<object>}  options.columns             - [{ accessor, header, dataType?, cell? } | { header, columns: [...] }]
  * @param {number}         [options.minDetectionRows]  - Min samples for confident detection (default: 10)
  * @param {number}         [options.pageSize]           - Rows per page (default: 20)
  * @param {boolean}        [options.enableSorting]       - Default: true
@@ -65,14 +80,28 @@ export default function useTableController(options) {
     }
 
     // Run detection
-    var result = detectTypes(data, columns, minDetectionRows);
+    // Leaves only — a group column has no accessor and no data of its own to
+    // sample, it is purely a spanning header over the columns that do.
+    var result = detectTypes(data, flattenLeaves(columns), minDetectionRows);
     detectionRef.current = { types: result.types, confident: result.confident, dataRef: data };
     return result.types;
   }, [data, columns, minDetectionRows]);
 
   // ── Build TanStack column defs ──
   var tanstackColumns = useMemo(function() {
-    return columns.map(function(col) {
+    function build(col) {
+      // A group has no data of its own — column.group() renders it as a
+      // spanning header cell (TanStack's own colSpan) over whichever leaf
+      // columns are nested under it, and nothing else about those leaves
+      // changes: same filters, same sort, same cells they'd have flat.
+      if (col.columns && col.columns.length) {
+        return columnHelper.group({
+          id: col.id || col.header,
+          header: col.header,
+          columns: col.columns.map(build)
+        });
+      }
+
       var type = detectedTypes.get(col.accessor) || TYPES.STRING;
       var filterFn = filterFnMap[type] || stringFilterFn;
 
@@ -95,11 +124,34 @@ export default function useTableController(options) {
         colDef.cell = rendererFn(rendererConfig);
       }
       return columnHelper.accessor(col.accessor, colDef);
-    });
+    }
+    return columns.map(build);
   }, [columns, detectedTypes]);
 
   // ── Table state ──
-  var [sorting, setSorting] = useState([]);
+  //
+  // Sorting can be CONTROLLED by the host. Uncontrolled is the default and is
+  // what a plain data grid wants: click a header, the table reorders itself.
+  //
+  // A host takes it over when the ordering is not the table's to decide.
+  // A grouped report is the case that forces it — its rows carry subtotals
+  // that must stay with their group, and columns whose values are derived
+  // from the row above them. Re-sorting such a result in the view layer
+  // scatters the subtotals and leaves every running total describing an order
+  // that is no longer on screen. So the host supplies the order and takes the
+  // header click as an instruction, which is what `manualSorting` means to
+  // TanStack: "already sorted, do not sort it again".
+  var controlledSorting = options.sorting !== undefined;
+  var [ownSorting, setOwnSorting] = useState([]);
+  var sorting = controlledSorting ? options.sorting : ownSorting;
+  var setSorting = function (updater) {
+    var next = typeof updater === 'function' ? updater(sorting) : updater;
+    if (controlledSorting) {
+      if (options.onSortingChange) options.onSortingChange(next);
+      return;
+    }
+    setOwnSorting(next);
+  };
   var [columnFilters, setColumnFilters] = useState([]);
   var [pagination, setPagination] = useState({ pageIndex: 0, pageSize: pageSize });
 
@@ -117,7 +169,11 @@ export default function useTableController(options) {
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: enableFiltering ? getFilteredRowModel() : undefined,
-    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
+    // Not applied when the host controls the order — the rows arrive sorted
+    // and sorting them again is both wasted work and, for a grouped result,
+    // wrong.
+    getSortedRowModel: (enableSorting && !controlledSorting) ? getSortedRowModel() : undefined,
+    manualSorting: controlledSorting,
     getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),

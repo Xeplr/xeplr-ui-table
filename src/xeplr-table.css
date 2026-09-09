@@ -21,6 +21,9 @@
 /* ── Toolbar ── */
 .xeplr-table-toolbar {
   display: flex;
+  /* Centred so arbitrary host content in the leading slot sits on the same
+     line as the buttons instead of stretching to the row's full height. */
+  align-items: center;
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--xeplr-border-primary, #2a2a4a);
@@ -54,15 +57,147 @@
   table-layout: auto;
 }
 
+/* ── Content sizing (columnSizing="content") ──
+   Everything here is scoped to .xeplr-table-sized, so the default fill-the-
+   container behaviour is untouched for tables that don't opt in.
+
+   `fixed` is what makes the measured widths binding — under `auto` the
+   browser re-negotiates them against the content and the colgroup becomes a
+   suggestion. Wrapping is the trade for that: a column short of its natural
+   width has to put the overflow somewhere, and wrapped text stays readable
+   where a truncated cell just hides data. `anywhere` is the last resort for a
+   single unbreakable token wider than its whole column. */
+.xeplr-table-sized {
+  table-layout: fixed;
+}
+
+.xeplr-table-sized .xeplr-table-th {
+  white-space: normal;
+}
+
+.xeplr-table-sized .xeplr-table-td,
+.xeplr-table-sized .xeplr-table-header-label {
+  overflow-wrap: anywhere;
+}
+
+/* ── Styled tables (cellStyle) ──
+   Separated borders, on purpose. Under the default `collapse`, adjacent cells
+   share one border and CSS picks the winner by width, then style — so a thin
+   border set on one cell next to a thicker neighbour never appears at all.
+   Per-side control would be dishonest: you'd set it, see nothing, and
+   reasonably call it broken.
+
+   `separate` with zero spacing renders identically to today for the default
+   borders (only bottoms are set, and horizontal neighbours don't share those),
+   but every border a user sets now actually draws. The trade is that two
+   adjacent cells each carrying a border on the SAME shared edge will show 2px
+   where collapse would have merged to 1px — style one side rather than all
+   four and it doesn't arise. */
+.xeplr-table-styled {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* ── Cell zoom (cellZoom) ──
+   Sized in em so it scales off whatever font the cell itself is using: a
+   compact theme's 11px cell zooms proportionally, rather than to some fixed
+   size that would be a huge jump from one table and barely a change in
+   another.
+
+   No cursor change on a zoomable cell, deliberately: a magnifier cursor
+   obscures the very text you're trying to aim at, which is backwards for a
+   reading aid. The plain arrow stays, so you can point precisely. */
+.xeplr-table-cell-zoom {
+  position: fixed;
+  z-index: 300;
+  max-width: min(560px, 90vw);
+  max-height: 60vh;
+  overflow: auto;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--xeplr-bg-secondary, #16162a);
+  border: 1px solid var(--xeplr-border-primary, #2a2a4a);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .45);
+  /* Selectable on purpose — reading it is the point, and copying it out is
+     the next thing anyone wants to do. */
+  user-select: text;
+}
+
+.xeplr-table-cell-zoom:focus {
+  outline: none;
+}
+
+.xeplr-table-cell-zoom-label {
+  font-size: .75em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  opacity: .6;
+  margin-bottom: 6px;
+}
+
+.xeplr-table-cell-zoom-value {
+  font-size: 1.9em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 /* ── Header ── */
 .xeplr-table-th {
   padding: 0;
   background: var(--xeplr-bg-secondary, #16162a);
   border-bottom: 2px solid var(--xeplr-border-primary, #2a2a4a);
+  /* Thin by default between every header cell — a grouped table (a pivoted
+     date over several measures) reads as one solid block without SOME line
+     between its own columns, not just at the group's outer edge. */
+  border-right: 1px solid var(--xeplr-border-secondary, #2a2a4a);
   text-align: left;
   font-weight: 600;
   white-space: nowrap;
   color: var(--xeplr-text-secondary, inherit);
+}
+
+/* A darkened version of the SAME light-gray line already drawn everywhere
+   else in this table (--xeplr-border-secondary), not a separate color —
+   the group boundary is meant to read as "more of this table's own grid,"
+   not as a different, unrelated UI element sitting on top of it. */
+.xeplr-table-th-group,
+.xeplr-table-th-group-start,
+.xeplr-table-th-group-end,
+.xeplr-table-td-group-start,
+.xeplr-table-td-group-end {
+  --xeplr-table-group-border: #f1eaea;
+}
+
+/* The spanning cell itself (the date, not the measures under it) — centered
+   over what it covers, the way a merged cell reads in Excel. Top border
+   closes the frame's roof. */
+.xeplr-table-th-group .xeplr-table-header-cell {
+  justify-content: center;
+}
+.xeplr-table-th-group {
+  text-align: center;
+  border-top: 2px solid var(--xeplr-table-group-border);
+}
+
+/* Every header cell in a row that ISN'T the last one gets the divider under
+   it — a real group (the date) AND a plain column beside it (Category Name)
+   alike — so the line drawn under "2025-05-01" runs the full width of the
+   header instead of stopping wherever a non-grouped column happens to sit. */
+.xeplr-table-th-row-divider {
+  border-bottom: 1px solid var(--xeplr-border-secondary, #ccc);
+}
+
+/* The frame's sides — one continuous line from the group's own header cell,
+   down through the measure-label row, down through every data row, so the
+   whole block reads as one unit instead of columns that happen to sit next
+   to each other. */
+.xeplr-table-th-group-start,
+.xeplr-table-td-group-start {
+  border-left: 2px solid var(--xeplr-table-group-border);
+}
+.xeplr-table-th-group-end,
+.xeplr-table-td-group-end {
+  border-right: 2px solid var(--xeplr-table-group-border);
 }
 
 .xeplr-table-header-cell {
@@ -137,13 +272,16 @@
 }
 
 /* ── Filter panel ── */
+/* PORTALLED — see FilterWrapper. `top`/`left` are set inline from the
+   trigger's rect; everything here is appearance only. It sits on document.body
+   so no table's `overflow: auto` can clip it. */
 .xeplr-table-filter-panel {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 100;
+  position: fixed;
+  z-index: 3000;
   min-width: 220px;
   max-width: 300px;
+  max-height: 60vh;
+  overflow: auto;
   background: var(--xeplr-bg-tertiary, #1e1e38);
   border: 1px solid var(--xeplr-border-primary, #3a3a5a);
   border-radius: 6px;
@@ -910,3 +1048,12 @@
 
 .xeplr-r-avatar-img { object-fit: cover; }
 .xeplr-r-chip-avatar-img { object-fit: cover; }
+
+/* ── Host-marked columns (columnClassName) ──
+   Nothing here styles a specific mark — the class is the host's and so is its
+   meaning. This only makes the header label clickable when the host has taken
+   the click, so the cursor says so before anybody guesses. */
+.xeplr-table-header-label.clickable {
+  cursor: pointer;
+  user-select: none;
+}
