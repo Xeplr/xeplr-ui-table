@@ -1,6 +1,6 @@
 {
   "name": "@xeplr/ui-table",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Controlled TanStack Table wrapper with auto-detected column types and smart filters",
   "type": "module",
   "main": "src/index.js",
