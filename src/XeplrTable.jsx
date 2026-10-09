@@ -3,6 +3,7 @@ import { flexRender } from '@tanstack/react-table';
 import useTableController from './useTableController.js';
 import useActionsController from './useActionsController.js';
 import useColumnWidths from './useColumnWidths.js';
+import { shouldWindowColumns, columnWindow, windowHeaders, DEFAULT_WINDOW_COLUMN_WIDTH } from './columnWindow.js';
 import CellZoom from './CellZoom.jsx';
 import { TYPES } from './detectTypes.js';
 import StringFilter from './filters/StringFilter.jsx';
@@ -68,6 +69,12 @@ var CHILD_DISPLAY = { POPUP: 'popup', INNER: 'inner' };
  *   the container, as a table always has. 'content' instead sizes each column
  *   to its text at the current font, and leaves any width it doesn't need
  *   blank rather than stretching to fill. See columnWidths.js for the rule.
+ * @param {string}         [props.columnWindowing]  - 'auto' (default): a table
+ *   with more than 60 columns draws only the ones in view, plus a margin, and
+ *   holds the rest of the width in a spacer each side — a 1,000-column pivot
+ *   costs what a 30-column one does. 'on' always, 'off' never. Widths are the
+ *   measured ones under 'content' sizing (and `columnWidths`), otherwise 140px
+ *   (or `minColumnWidth`, if larger). See columnWindow.js.
  * @param {Function}       [props.columnText]       - (row, column) => string.
  *   Only used by 'content' sizing, and only worth passing if cells are
  *   formatted: measuring 36260.8 when the screen shows ₹36,260.80 sizes the
@@ -228,6 +235,63 @@ export default function XeplrTable(props) {
   });
   var sizing = widths.sizing;
 
+  // ── Column windowing (columnWindow.js) ──
+  // Rows are paged; columns were all drawn, and a pivot by day over a year
+  // (1,095 columns × 100 rows) froze the page. Above the threshold only the
+  // columns in view are drawn. Hooks run unconditionally; the work is skipped
+  // when the table is narrow.
+  var leafColumns = table.getVisibleLeafColumns();
+  var windowing = shouldWindowColumns(leafColumns.length, props.columnWindowing);
+  var fallbackWidth = Math.max(DEFAULT_WINDOW_COLUMN_WIDTH, props.minColumnWidth || 0);
+  var leafWidths = windowing
+    ? leafColumns.map(function(c, i) {
+        var measured = sizing && sizing.widths ? sizing.widths[i] : null;
+        return measured > 0 ? measured : fallbackWidth;
+      })
+    : null;
+  var [scrollView, setScrollView] = useState({ left: 0, width: 0 });
+  useLayoutEffect(function() {
+    if (!windowing) return undefined;
+    var el = widths.scrollRef.current;
+    if (!el) return undefined;
+    var frame = 0;
+    function read() {
+      frame = 0;
+      var next = { left: el.scrollLeft, width: el.clientWidth };
+      setScrollView(function(prev) { return prev.left === next.left && prev.width === next.width ? prev : next; });
+    }
+    // One read per frame however fast the scroll events come.
+    function onScroll() { if (!frame) frame = requestAnimationFrame(read); }
+    read();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    var observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onScroll);
+    if (observer) observer.observe(el);
+    return function() {
+      el.removeEventListener('scroll', onScroll);
+      if (observer) observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [windowing, widths.scrollRef]);
+  var extraLeading = (showExpandCol ? ((sizing && sizing.extraWidths.expand) || 36) : 0) +
+    (actions.hasDelete ? ((sizing && sizing.extraWidths.checkbox) || 40) : 0);
+  var extraTrailing = hasRowActions ? ((sizing && sizing.extraWidths.actions) || 80) : 0;
+  var win = windowing
+    ? columnWindow({ widths: leafWidths, scrollLeft: scrollView.left, viewportWidth: scrollView.width, leadingWidth: extraLeading })
+    : null;
+  var windowedTableWidth = windowing
+    ? extraLeading + extraTrailing + leafWidths.reduce(function(sum, w) { return sum + w; }, 0)
+    : 0;
+  // Each header row cut to the window — or the row as it is.
+  function headersOf(headerGroup) {
+    return win
+      ? windowHeaders(headerGroup.headers, win.start, win.end)
+      : headerGroup.headers.map(function(h) { return { header: h, colSpan: h.colSpan }; });
+  }
+  function cellsOf(row) {
+    var cells = row.getVisibleCells();
+    return win ? cells.slice(win.start, win.end) : cells;
+  }
+
   // PER-COLUMN CLASS, resolved by leaf index — the same index `columnWidths`
   // uses, so a host that pins column 3 highlights column 3 without a second
   // way of naming it. Header and body share one answer: a selected column is
@@ -258,7 +322,9 @@ export default function XeplrTable(props) {
     enableFiltering: enableFiltering
   };
 
-  var totalColumns = headerGroups[0]?.headers.length || 1;
+  var totalColumns = win
+    ? (win.end - win.start) + (win.before > 0 ? 1 : 0) + (win.after > 0 ? 1 : 0) || 1
+    : headerGroups[0]?.headers.length || 1;
   if (showExpandCol) totalColumns++;
   if (actions.hasDelete) totalColumns++;
   if (hasRowActions) totalColumns++;
@@ -359,10 +425,22 @@ export default function XeplrTable(props) {
             table edge instead of being stretched across empty space. */}
         <table
           ref={widths.tableRef}
-          className={'xeplr-table' + (sizing ? ' xeplr-table-sized' : '') + (props.cellStyle ? ' xeplr-table-styled' : '')}
-          style={sizing ? { width: sizing.tableWidth + 'px' } : undefined}
+          className={'xeplr-table' + (sizing || win ? ' xeplr-table-sized' : '') + (win ? ' xeplr-table-windowed' : '') + (props.cellStyle ? ' xeplr-table-styled' : '')}
+          style={win ? { width: windowedTableWidth + 'px' } : (sizing ? { width: sizing.tableWidth + 'px' } : undefined)}
         >
-          {sizing && (
+          {win ? (
+            <colgroup>
+              {showExpandCol && <col style={{ width: ((sizing && sizing.extraWidths.expand) || 36) + 'px' }} />}
+              {actions.hasDelete && <col style={{ width: ((sizing && sizing.extraWidths.checkbox) || 40) + 'px' }} />}
+              {win.before > 0 && <col style={{ width: win.before + 'px' }} />}
+              {leafWidths.slice(win.start, win.end).map(function(width, i) {
+                var leaf = leafColumns[win.start + i];
+                return <col key={leaf ? leaf.id : win.start + i} style={{ width: width + 'px' }} />;
+              })}
+              {win.after > 0 && <col style={{ width: win.after + 'px' }} />}
+              {hasRowActions && <col style={{ width: extraTrailing + 'px' }} />}
+            </colgroup>
+          ) : sizing && (
             <colgroup>
               {showExpandCol && <col style={{ width: (sizing.extraWidths.expand || 36) + 'px' }} />}
               {actions.hasDelete && <col style={{ width: (sizing.extraWidths.checkbox || 40) + 'px' }} />}
@@ -391,7 +469,9 @@ export default function XeplrTable(props) {
                         onChange={function() { actions.toggleSelectAll(visibleIds); }} />
                     </th>
                   )}
-                  {headerGroup.headers.map(function(header) {
+                  {win && win.before > 0 && <th className="xeplr-table-th xeplr-table-col-spacer" aria-hidden="true" style={{ top: stickyTop }} />}
+                  {headersOf(headerGroup).map(function(item) {
+                    var header = item.header;
                     var canSort = header.column.getCanSort();
                     var sorted = header.column.getIsSorted();
                     var dataType = header.column.columnDef.meta?.dataType || TYPES.STRING;
@@ -430,7 +510,7 @@ export default function XeplrTable(props) {
                       // before. It only widens for a GROUP header (a pivoted
                       // date spanning the measures under it), which is what
                       // TanStack computed it for.
-                      <th key={header.id} colSpan={header.colSpan} className={thClass}
+                      <th key={header.id} colSpan={item.colSpan} className={thClass}
                         // The host's header style sits UNDER `top`, so a
                         // sticky header stays stuck whatever it is styled with.
                         style={Object.assign(
@@ -462,6 +542,7 @@ export default function XeplrTable(props) {
                       </th>
                     );
                   })}
+                  {win && win.after > 0 && <th className="xeplr-table-th xeplr-table-col-spacer" aria-hidden="true" style={{ top: stickyTop }} />}
                   {hasRowActions && (
                     <th className="xeplr-table-th xeplr-table-th-actions" style={{ top: stickyTop }}>
                       <div className="xeplr-table-header-cell">
@@ -518,7 +599,8 @@ export default function XeplrTable(props) {
                         onChange={function() { actions.toggleSelect(rowId); }} />
                     </td>
                   )}
-                  {row.getVisibleCells().map(function(cell) {
+                  {win && win.before > 0 && <td className="xeplr-table-td xeplr-table-col-spacer" aria-hidden="true" />}
+                  {cellsOf(row).map(function(cell) {
                     var meta = cell.column.columnDef.meta;
                     var cellStyleDef = meta?.cellStyle;
                     var condStyle = cellStyleDef
@@ -568,6 +650,7 @@ export default function XeplrTable(props) {
                       </td>
                     );
                   })}
+                  {win && win.after > 0 && <td className="xeplr-table-td xeplr-table-col-spacer" aria-hidden="true" />}
                   {hasRowActions && (
                     <td className="xeplr-table-td xeplr-table-td-actions">
                       <ActionsCell row={original} hasSave={actions.hasSave} hasDelete={actions.hasDelete}
