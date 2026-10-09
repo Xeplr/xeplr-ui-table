@@ -1057,3 +1057,14 @@
   cursor: pointer;
   user-select: none;
 }
+
+/* ── Column windowing (columnWindow.js) ──
+   The spacers hold the width of the columns not drawn, so the scrollbar and
+   the layout are the full table's. They must hold width and nothing else. */
+.xeplr-table-col-spacer,
+.xeplr-table-th.xeplr-table-col-spacer,
+.xeplr-table-td.xeplr-table-col-spacer {
+  padding: 0;
+  border-left: none;
+  border-right: none;
+}

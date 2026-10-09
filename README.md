@@ -63,6 +63,7 @@ The package ships its `src/` as ES modules with JSX and imports its own styleshe
 | `headerStyle` | — | `({ columnKey, isGroupHeader, depth }) => style` |
 | `cellZoom` | `false` | double-click a cell to show it enlarged. Ignored when the schema has children shown as `'popup'`, where double-click opens the record |
 | `columnSizing` | fill | `'content'` sizes columns to their text |
+| `columnWindowing` | `'auto'` | wide tables draw only the columns in view — see Column windowing. `'on'` / `'off'` force it |
 | `columnText`, `sizingSampleRows` (200), `minColumnWidth` (40), `maxColumnWidth` (420), `columnWidths`, `sizingKey`, `onColumnSizing` | | content sizing — see below |
 | `className` | — | added to the container |
 
@@ -209,6 +210,18 @@ Numeric strings compare as numbers. A host `cellStyle` prop result is merged ove
 | `link` | `hrefKey` (renders `<a href={row[hrefKey]}>`) and `target`, or `onClick(row)` | text |
 
 Each renderer is `(config) => (ctx) => node`. The `renderers` object is the registry the table reads, so `renderers.myType = (config) => (ctx) => …` adds one.
+
+## Column windowing
+
+Rows are paged; columns are not. So a wide table (a pivot of a date by day over a year: 1,095 columns) built every cell of the page at once, and that froze the browser. With `columnWindowing: 'auto'` (the default), a table with **more than 60 leaf columns** draws only:
+- the columns in view, plus 6 on each side
+- one spacer cell at each edge, holding the width of the rest
+
+The scrollbar, the scroll position and the layout are the full table's. Scrolling sideways redraws the window, once per frame. A grouped header (a date over its measures) is cut to the part in view.
+
+- **Widths:** the measured ones under `columnSizing: 'content'` (pinned `columnWidths` included); otherwise 140px, or `minColumnWidth` if larger. A windowed table is always fixed-layout at exactly those widths.
+- **Rule:** the arithmetic is in `src/columnWindow.js` (`columnWindow`, `windowHeaders`, `shouldWindowColumns`), pure and tested on its own.
+- **Limitation:** columns off screen are not in the DOM, so the browser's find-in-page does not see them.
 
 ## Content sizing
 
