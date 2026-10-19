@@ -34,10 +34,10 @@ The changeset is exactly what [`@xeplr/base-apis`](https://www.npmjs.com/package
 ## Install
 
 ```sh
-npm i @xeplr/ui-table @tanstack/react-table
+npm i @xeplr/ui-table @tanstack/react-table react-router-dom
 ```
 
-Peers: `react` 18 or 19, `@tanstack/react-table` 8. Filter panels use `createPortal` from `react-dom`.
+Peers: `react` 18 or 19, `@tanstack/react-table` 8, `react-router-dom` 6 or 7 (the URL state below comes from [`@xeplr/ui-utils`](https://www.npmjs.com/package/@xeplr/ui-utils)' `useUrlState`, which imports it; without a router above the table, everything stays in memory). Filter panels use `createPortal` from `react-dom`.
 
 The package ships its `src/` as ES modules with JSX and imports its own stylesheet (`xeplr-table.css`), so it needs a bundler that compiles both — Vite does.
 
@@ -66,6 +66,7 @@ The package ships its `src/` as ES modules with JSX and imports its own styleshe
 | `columnWindowing` | `'auto'` | wide tables draw only the columns in view — see Column windowing. `'on'` / `'off'` force it |
 | `columnText`, `sizingSampleRows` (200), `minColumnWidth` (40), `maxColumnWidth` (420), `columnWidths`, `sizingKey`, `onColumnSizing` | | content sizing — see below |
 | `className` | — | added to the container |
+| `urlKey` | — | prefix for the query keys that keep the open record and modal in the URL — see below. Omit it and they stay in memory |
 
 Toolbar slots receive `{ rowCount, totalCount, selectedCount, resetFilters, resetSorting, enableFiltering }` — `rowCount` after filtering, `totalCount` before.
 
@@ -134,6 +135,26 @@ With `onCommit`:
 Children (a schema with level 1): in `'popup'` mode, double-click or view opens the record with its child tables, which have their own add, edit and delete. In `'inner'` mode an expand arrow shows the child table under the row. Without children, view opens a read-only form.
 
 Without `onCommit` there are no checkboxes, toolbar edit buttons or built-in row actions.
+
+### Where you are lives in the URL: `urlKey`
+
+The record detail popup and the view / edit / add / copy modal are places a person navigates to, so with `urlKey` they are written to the URL's query and a refresh or a shared link lands on them again:
+
+| key | holds | example |
+|---|---|---|
+| `<urlKey>Row` | the id of the row open in the detail popup | `?ordersRow=17` |
+| `<urlKey>Edit` | the modal: mode, then the record — for a child record, the root id and the path to it first | `?ordersEdit=edit:17`, `?ordersEdit=add`, `?ordersEdit=view:17/employees/e6` |
+
+```jsx
+<XeplrTable urlKey="orders" data={orders} schema={schema} onCommit={save} />
+```
+
+- **The key is the host's, never a default.** One page can render several tables, and the host app has its own keys, so the table only writes the URL when given a prefix — give each table on a page its own. **Without `urlKey` both stay in memory**, behaving as before.
+- **Ids, not rows.** The URL holds the row's id (`_tempId` for an unsaved row), and the row is looked up in the current rows on every render, so a link opened before the data has loaded lands once it arrives — and a row that is gone opens nothing. Rows need an `id` for this, as for editing. An unsaved row's `_tempId` does not survive a refresh, because the staged changes do not.
+- **The form being typed is not in the URL.** Reopening a record starts from the row again.
+- **Opening or closing** adds a history entry, so Back closes the popup or modal; switching an open modal (View → Edit) replaces it.
+- Needs a router above the table (`react-router-dom`). The rule is in `src/tableUrlState.js` (`tableUrlKeys`, `encodeModal`, `decodeModal`, `resolvePlace`).
+- `useActionsController({ …, urlKey })` takes the same option when you build your own table around the controller.
 
 ### The changeset
 
@@ -265,7 +286,7 @@ There is no margin property: a `<td>` ignores margin.
 npm test
 ```
 
-Plain Node, no browser: changeset building, conditional-style parsing, style-layer resolution, column-width allocation, and the staging logic behind `useActionsController`. A Vite demo lives in `demo/`.
+Plain Node, no browser: changeset building, conditional-style parsing, style-layer resolution, column-width allocation, the staging logic behind `useActionsController`, and the URL state: the key format (`test/tableUrlState.test.js`) and the controller reading its places back from a real `MemoryRouter`, and every opener, close and save played through in memory, rendered with `react-dom/server` (`test/actionsUrlState.test.js`). A Vite demo lives in `demo/`.
 
 ## License
 
