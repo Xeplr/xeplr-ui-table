@@ -132,6 +132,10 @@ var CHILD_DISPLAY = { POPUP: 'popup', INNER: 'inner' };
  *   longer belongs to. Resolved by the host from the same vocabulary
  *   (tableStyles.js); this component only applies what it's handed.
  * @param {string}         [props.className]        - Additional CSS class
+ * @param {string}         [props.urlKey]           - Prefix for the query keys
+ *   that keep the open record detail (`<urlKey>Row`) and record modal
+ *   (`<urlKey>Edit`) in the URL, so a refresh or shared link reopens them.
+ *   Omit it and they stay in memory. Give each table on a page its own.
  * @param {Function}       [props.onCommit]         - async (changeSet[]) => void
  * @param {Array<{key: string, label: string, icon?: any, onClick: (row) => void,
  *   visible?: (row) => boolean, disabled?: (row) => boolean, variant?: string}>} [props.rowActions]
@@ -153,7 +157,8 @@ export default function XeplrTable(props) {
   var actions = useActionsController({
     onCommit: props.onCommit,
     schema: schema,
-    data: props.data
+    data: props.data,
+    urlKey: props.urlKey
   });
 
   var { table, detectedTypes, resetFilters, resetSorting } = useTableController({

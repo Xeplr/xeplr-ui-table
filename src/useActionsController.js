@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
+import { useUrlState } from '@xeplr/ui-utils/src/url/useUrlState.js';
 import { buildChangeSet } from './buildChangeSet.js';
+import { tableUrlKeys, rowKey, findRowByKey, encodeModal, decodeModal, resolvePlace } from './tableUrlState.js';
 
 /**
  * Controller for table CRUD actions with transactional queue.
@@ -13,6 +15,11 @@ import { buildChangeSet } from './buildChangeSet.js';
  * @param {Function} [options.onCommit] - async (changeSet[]) => void
  * @param {object}   options.schema     - { 0: { key, columns }, 1: { key, columns }, ... }
  * @param {Array}    options.data       - Original data
+ * @param {string}   [options.urlKey]   - Prefix for the query keys that hold
+ *   the open record detail (`<urlKey>Row`) and modal (`<urlKey>Edit`), so a
+ *   refresh or a shared link reopens them. Without it they stay in memory —
+ *   a page can render several tables, and only the host knows which keys are
+ *   free (see tableUrlState.js).
  */
 export default function useActionsController(options) {
   var onCommit = options.onCommit || null;
@@ -133,74 +140,116 @@ export default function useActionsController(options) {
     });
   }, []);
 
+  // ── Where you are: in the URL when the host names the keys ──
+  // The detail popup and the modal are places; the query holds the row's id
+  // and the modal's mode + path, and both are resolved against the rows on
+  // every render — so a link opened before the rows arrive lands once they
+  // do. Without `urlKey` the same values live in memory (inUrl: false).
+  var urlKeys = tableUrlKeys(options.urlKey);
+  var inUrl = !!urlKeys;
+
   // ── Detail popup (for childDisplay === 'popup') ──
-  var [detailRow, setDetailRow] = useState(null);
+  var [detailKey, setDetailKey] = useUrlState(inUrl ? urlKeys.row : 'row', { inUrl: inUrl });
+  var detailRow = useMemo(function() {
+    return findRowByKey(stagedData, detailKey);
+  }, [stagedData, detailKey]);
 
   var openDetail = useCallback(function(row) {
-    setDetailRow(row);
-  }, []);
+    setDetailKey(rowKey(row));
+  }, [setDetailKey]);
 
   var closeDetail = useCallback(function() {
-    setDetailRow(null);
-  }, []);
+    setDetailKey(null);
+  }, [setDetailKey]);
 
   // ── Modal ──
-  // context: { level, schemaLevel, rootId?, path? }
-  var [modal, setModal] = useState({ mode: null, record: null, context: null });
+  // context: { level, rootId?, path? }
+  // The URL names WHICH record in WHICH mode; the form being typed is a
+  // draft kept here, tied to the value it was started under, and dropped
+  // whenever a modal is opened or closed.
+  var [modalValue, setModalValue] = useUrlState(inUrl ? urlKeys.edit : 'edit', { inUrl: inUrl });
+  var [draft, setDraft] = useState({ value: null, record: null });
+
+  var opened = useMemo(function() {
+    var place = decodeModal(modalValue);
+    var where = resolvePlace(stagedData, place);
+    if (!where) return null;
+    var record;
+    if (place.mode === 'add') {
+      var level = where.context.path ? (where.context.path.length + 1) / 2 : 0;
+      record = buildEmptyRecord(schema, level, level === 0 ? data : where.rows);
+    } else {
+      var hit = findRowByKey(where.rows, place.id);
+      if (!hit) return null;
+      record = Object.assign({}, hit);
+      if (place.mode === 'copy') {
+        record.id = '';
+        delete record._tempId;
+      }
+    }
+    return { mode: place.mode === 'copy' ? 'add' : place.mode, record: record, context: where.context };
+  }, [modalValue, stagedData, schema, data]);
+
+  var hasDraft = !!opened && draft.value === modalValue && !!draft.record;
+  var modal = opened
+    ? { mode: opened.mode, record: hasDraft ? draft.record : opened.record, context: opened.context }
+    : { mode: null, record: null, context: null };
+
+  // Opening pushes a history entry, so Back closes it; switching an open
+  // modal (View → Edit) replaces the entry instead.
+  var openModal = useCallback(function(place) {
+    setDraft({ value: null, record: null });
+    setModalValue(encodeModal(place), { replace: !!modalValue });
+  }, [setModalValue, modalValue]);
 
   var openView = useCallback(function(row) {
-    setModal({ mode: 'view', record: Object.assign({}, row), context: { level: 'parent' } });
-  }, []);
+    openModal({ mode: 'view', id: rowKey(row) });
+  }, [openModal]);
 
   var openEdit = useCallback(function(row) {
-    setModal({ mode: 'edit', record: Object.assign({}, row), context: { level: 'parent' } });
-  }, []);
+    openModal({ mode: 'edit', id: rowKey(row) });
+  }, [openModal]);
 
   var openCopy = useCallback(function(row) {
-    var copy = Object.assign({}, row);
-    copy.id = '';
-    delete copy._tempId;
-    setModal({ mode: 'add', record: copy, context: { level: 'parent' } });
-  }, []);
+    openModal({ mode: 'copy', id: rowKey(row) });
+  }, [openModal]);
 
   var openAdd = useCallback(function() {
-    var empty = buildEmptyRecord(schema, 0, data);
-    setModal({ mode: 'add', record: empty, context: { level: 'parent' } });
-  }, [schema, data]);
+    openModal({ mode: 'add' });
+  }, [openModal]);
 
   // Nested modal openers
   var openNestedView = useCallback(function(rootId, path, row) {
-    setModal({ mode: 'view', record: Object.assign({}, row), context: { level: 'nested', rootId: rootId, path: path } });
-  }, []);
+    openModal({ mode: 'view', rootId: rootId, path: path, id: rowKey(row) });
+  }, [openModal]);
 
   var openNestedEdit = useCallback(function(rootId, path, row) {
-    setModal({ mode: 'edit', record: Object.assign({}, row), context: { level: 'nested', rootId: rootId, path: path } });
-  }, []);
+    openModal({ mode: 'edit', rootId: rootId, path: path, id: rowKey(row) });
+  }, [openModal]);
 
   var openNestedCopy = useCallback(function(rootId, path, row) {
-    var copy = Object.assign({}, row);
-    copy.id = '';
-    delete copy._tempId;
-    setModal({ mode: 'add', record: copy, context: { level: 'nested', rootId: rootId, path: path } });
-  }, []);
+    openModal({ mode: 'copy', rootId: rootId, path: path, id: rowKey(row) });
+  }, [openModal]);
 
-  var openNestedAdd = useCallback(function(rootId, path, schemaLevel) {
-    var empty = buildEmptyRecord(schema, schemaLevel, findNestedArray(stagedData, rootId, path));
-    setModal({ mode: 'add', record: empty, context: { level: 'nested', rootId: rootId, path: path } });
-  }, [schema, stagedData]);
+  var openNestedAdd = useCallback(function(rootId, path) {
+    openModal({ mode: 'add', rootId: rootId, path: path });
+  }, [openModal]);
 
   var closeModal = useCallback(function() {
-    setModal({ mode: null, record: null, context: null });
-  }, []);
+    setDraft({ value: null, record: null });
+    setModalValue(null);
+  }, [setModalValue]);
 
+  var openRecord = opened ? opened.record : null;
   var updateField = useCallback(function(field, value) {
-    setModal(function(prev) {
-      if (!prev.record) return prev;
-      var updated = Object.assign({}, prev.record);
+    setDraft(function(prev) {
+      var base = prev.value === modalValue && prev.record ? prev.record : openRecord;
+      if (!base) return prev;
+      var updated = Object.assign({}, base);
       updated[field] = value;
-      return { mode: prev.mode, record: updated, context: prev.context };
+      return { value: modalValue, record: updated };
     });
-  }, []);
+  }, [modalValue, openRecord]);
 
   // ── Queue: save ──
   var handleSave = useCallback(function() {
@@ -437,17 +486,4 @@ function buildEmptyRecord(schema, schemaLevel, existingRecords) {
 
   empty.id = '';
   return empty;
-}
-
-/**
- * Find the nested array for a given rootId and path in stagedData.
- */
-function findNestedArray(stagedData, rootId, path) {
-  for (var i = 0; i < stagedData.length; i++) {
-    var rid = stagedData[i]._tempId || stagedData[i].id;
-    if (rid === rootId) {
-      return navigatePath(stagedData[i], path) || [];
-    }
-  }
-  return [];
 }
