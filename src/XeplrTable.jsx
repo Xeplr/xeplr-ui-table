@@ -49,6 +49,10 @@ var CHILD_DISPLAY = { POPUP: 'popup', INNER: 'inner' };
  * @param {Function}       [props.onSortingChange]  - Called with the next sort state.
  * @param {boolean}        [props.enableFiltering]  - Default: true
  * @param {boolean}        [props.enablePagination] - Default: true
+ * @param {boolean}        [props.showToolbar]      - Default: true. False
+ *   leaves the toolbar row out entirely — for a small table on a dashboard
+ *   that offers no filtering or sorting, where an empty bar with a Clear Sort
+ *   button is clutter. Editing (Add/Delete/Commit) keeps it whatever this says.
  * @param {Function}       [props.rowClassName]     - (row) => string|falsy. Extra
  *   CSS class per row, so a host can mark rows that mean something to IT.
  * @param {Function}       [props.toolbarActions]   - (ctx) => ReactNode.
@@ -363,6 +367,7 @@ export default function XeplrTable(props) {
 
   return (
     <div className={'xeplr-table-container' + (props.className ? ' ' + props.className : '')}>
+      {(props.showToolbar !== false || actions.hasSave || actions.hasDelete || actions.hasPending) && (
       <div className="xeplr-table-toolbar">
         {actions.hasSave && (
           <button type="button" className="xeplr-table-toolbar-btn xeplr-table-toolbar-btn-add" onClick={actions.openAdd}>
@@ -422,6 +427,7 @@ export default function XeplrTable(props) {
             </>
           )}
       </div>
+      )}
 
       <div className="xeplr-table-scroll" ref={widths.scrollRef}>
         {/* When sized to content the table stops at the width it needs; the

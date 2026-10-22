@@ -52,6 +52,7 @@ The package ships its `src/` as ES modules with JSX and imports its own styleshe
 | `childDisplay` | `'popup'` | `'popup'` or `'inner'` — how level-1 children show |
 | `pageSize` | `20` | initial page size (the page-size menu offers 100, 200, 500, 1000) |
 | `enableSorting`, `enableFiltering`, `enablePagination` | `true` | |
+| `showToolbar` | `true` | `false` leaves the toolbar row out (a small table that offers no filtering or sorting). Editing tables keep it for Add/Delete/Commit. |
 | `minDetectionRows` | `10` | non-empty samples a column needs before its detected type is final |
 | `sorting`, `onSortingChange` | — | controlled sort (`[{ id, desc }]`) — see Sorting |
 | `onHeaderClick` | — | `(columnKey, isGroupHeader)` — **replaces** sort-on-click |
