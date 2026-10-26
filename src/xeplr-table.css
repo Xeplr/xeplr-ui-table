@@ -687,7 +687,7 @@
 
 .xeplr-table-actions-cell {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
 }
 
@@ -720,22 +720,36 @@
   cursor: not-allowed;
 }
 
-/* ── Custom row actions (props.rowActions) — text-label buttons, e.g. Rollback/Delete ── */
+/* ── Custom row actions (props.rowActions) — text-label buttons, e.g. Rollback/Delete ──
+   ONE LOOK FOR ALL OF THEM: the same outlined button, differing only in
+   colour. (A plain label was grey borderless text beside a red outlined
+   Delete, so Edit read as disabled.) A danger action is red; every other one
+   takes the accent on hover. All of them visibly give under a press. */
 .xeplr-table-action-label {
   width: auto;
   height: auto;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  border-color: var(--xeplr-input-border, #3a3a5a);
+  color: var(--xeplr-text-primary, #e0e0e0);
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.08s;
 }
+.xeplr-table-action-label:hover:not(:disabled) {
+  border-color: var(--xeplr-accent, #7c7cff);
+  color: var(--xeplr-accent, #7c7cff);
+  background: var(--xeplr-bg-hover, #2a2a4a);
+}
+.xeplr-table-action-btn:active:not(:disabled) { transform: scale(0.95); }
 
 .xeplr-table-action-danger {
-  border-color: var(--xeplr-danger, #ff6b6b);
+  border-color: color-mix(in srgb, var(--xeplr-danger, #ff6b6b) 55%, transparent);
   color: var(--xeplr-danger, #ff6b6b);
 }
 
-.xeplr-table-action-danger:hover:not(:disabled) {
+.xeplr-table-action-label.xeplr-table-action-danger:hover:not(:disabled) {
+  border-color: var(--xeplr-danger, #ff6b6b);
   background: var(--xeplr-danger-bg, #3a1a1a);
   color: var(--xeplr-danger, #ff8a8a);
 }
