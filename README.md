@@ -48,9 +48,9 @@ The package ships its `src/` as ES modules with JSX and imports its own styleshe
 | `data` | — | row array. Rows need an `id` for editing, selection and the changeset |
 | `schema` | — | `{ 0: { key, columns }, 1: { key, columns, header? }, … }` — see below |
 | `onCommit` | — | `async (changeSet) => …`. **Omit it and the table is read-only** |
-| `rowActions` | — | custom per-row buttons, replacing the built-in set |
+| `rowActions` | — | custom per-row buttons, replacing the built-in set. Labelled ones share one outlined look; `variant: 'danger'` turns one red |
 | `childDisplay` | `'popup'` | `'popup'` or `'inner'` — how level-1 children show |
-| `pageSize` | `20` | initial page size (the page-size menu offers 100, 200, 500, 1000) |
+| `pageSize` | `20` | initial page size (the page-size menu offers 100, 200, 500, 1000, plus this size when it is not one of them) |
 | `enableSorting`, `enableFiltering`, `enablePagination` | `true` | |
 | `showToolbar` | `true` | `false` leaves the toolbar row out (a small table that offers no filtering or sorting). Editing tables keep it for Add/Delete/Commit. |
 | `minDetectionRows` | `10` | non-empty samples a column needs before its detected type is final |

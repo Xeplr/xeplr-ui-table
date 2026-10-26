@@ -15,6 +15,7 @@ import ChildTable from './actions/ChildTable.jsx';
 import RecordModal from './actions/RecordModal.jsx';
 import RecordDetail from './actions/RecordDetail.jsx';
 import { resolveCellStyle } from './resolveCellStyle.js';
+import { pageSizeOptions } from './pageSizes.js';
 import './xeplr-table.css';
 
 var filterComponentMap = {
@@ -707,7 +708,7 @@ export default function XeplrTable(props) {
           <button type="button" onClick={function() { table.setPageIndex(table.getPageCount() - 1); }} disabled={!table.getCanNextPage()}>»»</button>
           <select className="xeplr-table-page-size" value={table.getState().pagination.pageSize}
             onChange={function(e) { table.setPageSize(Number(e.target.value)); }}>
-            {[100, 200, 500, 1000].map(function(size) { return <option key={size} value={size}>{size} rows</option>; })}
+            {pageSizeOptions(table.getState().pagination.pageSize).map(function(size) { return <option key={size} value={size}>{size} rows</option>; })}
           </select>
           <span className="xeplr-table-row-count">({table.getFilteredRowModel().rows.length} total)</span>
         </div>
