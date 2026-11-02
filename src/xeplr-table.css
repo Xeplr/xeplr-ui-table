@@ -24,6 +24,9 @@
   /* Centred so arbitrary host content in the leading slot sits on the same
      line as the buttons instead of stretching to the row's full height. */
   align-items: center;
+  /* Wraps rather than clipping: the container is overflow:hidden, so on a
+     narrow screen a toolbar that cannot wrap loses its last buttons. */
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--xeplr-border-primary, #2a2a4a);
@@ -448,6 +451,7 @@
 .xeplr-table-pagination {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 12px;
   border-top: 1px solid var(--xeplr-border-primary, #2a2a4a);
@@ -476,6 +480,7 @@
 
 .xeplr-table-page-info {
   color: var(--xeplr-text-secondary, #a0a0c0);
+  white-space: nowrap;
 }
 
 .xeplr-table-page-size {
@@ -490,6 +495,7 @@
 .xeplr-table-row-count {
   color: var(--xeplr-text-muted, #666);
   margin-left: auto;
+  white-space: nowrap;
 }
 
 /* ── Scrollbar ── */
@@ -1081,4 +1087,40 @@
   padding: 0;
   border-left: none;
   border-right: none;
+}
+
+/* ── Touch ──
+   A finger is not a mouse pointer: every control a row or the toolbar offers
+   gets a target a thumb can hit (about 40px), on any touch screen and on
+   any phone-width one. */
+@media (pointer: coarse), (max-width: 640px) {
+  .xeplr-table-action-btn { width: 40px; height: 40px; }
+  .xeplr-table-action-label { width: auto; height: auto; min-height: 40px; padding: 8px 14px; font-size: 13px; }
+  .xeplr-table-filter-trigger, .xeplr-table-expand-btn { width: 36px; height: 36px; }
+  .xeplr-table-checkbox { width: 22px; height: 22px; }
+  .xeplr-table-toolbar-btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .xeplr-table-pagination button { min-width: 40px; min-height: 40px; }
+  .xeplr-table-page-size { min-height: 40px; font-size: 14px; }
+  .xeplr-table-modal-close { min-width: 40px; min-height: 40px; }
+}
+
+/* ── Phones ──
+   The table keeps scrolling sideways — ten columns do not fit a phone and
+   turning rows into cards loses the grid — but the row's own buttons stay
+   pinned at the right edge, so Edit is never a scroll away. Popups fill the
+   screen and their fields stack. */
+@media (max-width: 640px) {
+  .xeplr-table-th-actions,
+  .xeplr-table-td-actions {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--xeplr-bg-tertiary, #1a1a2e);
+    box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.25);
+  }
+  .xeplr-table-th-actions { background: var(--xeplr-bg-secondary, #16162a); }
+  .xeplr-table-modal,
+  .xeplr-table-detail { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; }
+  .xeplr-table-detail-fields { grid-template-columns: 1fr; }
+  .xeplr-table-detail-body { padding: 16px; }
 }

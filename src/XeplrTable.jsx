@@ -32,6 +32,14 @@ var filterComponentMap = {
  */
 var CHILD_DISPLAY = { POPUP: 'popup', INNER: 'inner' };
 
+// Was this click a finger? A click is a PointerEvent that says so; where the
+// browser does not say, a screen with no hover is a touch screen.
+function isTouch(e) {
+  var type = e.nativeEvent && e.nativeEvent.pointerType;
+  if (type) return type === 'touch' || type === 'pen';
+  return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(hover: none)').matches;
+}
+
 /**
  * Main table component.
  *
@@ -356,6 +364,14 @@ export default function XeplrTable(props) {
     }
   }
 
+  // A finger has no double-click: on a touch screen one tap opens the row.
+  // Not when the tap was on something of the row's own (a button, a tick box).
+  function handleRowTap(e, original) {
+    if (!usePopup || !isTouch(e)) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea, a, label')) return;
+    actions.openDetail(original);
+  }
+
   // Resolved fresh each render: if the row has paged, sorted or filtered away,
   // there is nothing to find and the box simply isn't rendered.
   var zoomCell = null;
@@ -595,6 +611,7 @@ export default function XeplrTable(props) {
 
               rowElements.push(
                 <tr key={row.id} className={rowClass}
+                  onClick={function(e) { handleRowTap(e, original); }}
                   onDoubleClick={function() { handleRowDoubleClick(original); }}>
                   {showExpandCol && (
                     <td className="xeplr-table-td xeplr-table-td-expand">
