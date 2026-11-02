@@ -263,6 +263,17 @@ CSS classes are namespaced `xeplr-table-*` (chrome) and `xeplr-r-*` (renderers).
 
 The `gold` / `blue` tag variants and `link` use fixed colours. The header is not sticky by default; add `position: sticky; top: 0` to `.xeplr-table-th` and the table offsets each grouped header row by the real height of the rows above it.
 
+### Touch screens and phones
+
+- **Rows keep scrolling sideways** on a phone, inside the table's own box — a table of ten columns does not fit 360px, and turning rows into cards loses the grid. The page itself never widens.
+- **The actions column is pinned to the right edge** below 640px, so a row's Edit or Delete is on screen without scrolling the table.
+- **One tap opens a row** on a touch screen where a mouse needs a double-click (`childDisplay="popup"`). A tap on the row's own button or tick box does only that.
+- **Thumb-sized targets** on any touch screen (`pointer: coarse`) and below 640px: row buttons 40px, filter and expand buttons 36px, tick boxes 22px, toolbar and paging buttons 36–40px.
+- **The toolbar and the paging bar wrap** instead of clipping their last buttons; "Page 1 of 3" and the row count never break mid-phrase.
+- **Popups fill the screen** below 640px, and the detail popup's fields go to one column.
+
+Nothing above changes on a desktop with a mouse.
+
 ### Style layers for a host panel
 
 `tableStyles.js` is the vocabulary a host builds a style editor from — no React:
