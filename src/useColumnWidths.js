@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect, useCallback } from 'react';
-import { measureColumnDemand, allocateColumnWidths, resolvePercentWidths } from './columnWidths.js';
+import { measureColumnDemand, allocateColumnWidths, resolvePercentWidths, headerTextOf } from './columnWidths.js';
 
 /**
  * Content-based column widths — the DOM half. See columnWidths.js for the
@@ -250,7 +250,7 @@ export default function useColumnWidths(opts) {
       columns: columns,
       rows: rows,
       textOf: textOf,
-      headerOf: function(column) { return column.header || column.accessor; },
+      headerOf: headerTextOf,
       keyOf: function(column) { return column.accessor; },
       measure: measureWidest,
       bodyFont: BODY_FONTS,
