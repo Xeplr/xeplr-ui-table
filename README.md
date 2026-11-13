@@ -88,7 +88,8 @@ Level N+1's `key` is the array property on each level-N row. `header` titles a c
 | field | |
 |---|---|
 | `accessor` | row property — required on a leaf column |
-| `header` | title; defaults to `accessor` |
+| `header` | title; defaults to `accessor`. May be an element or a function (rendered by `flexRender`, e.g. an icon before the label) |
+| `headerText` | the header's text, for measuring the column's width when `header` is not text; else the accessor is measured |
 | `dataType` | `'string'`, `'number'`, `'date'` or `'boolean'` — skips detection |
 | `render` | `{ type, …config }`, or the renderer name as a string |
 | `cell` | TanStack cell function `(ctx) => node`; wins over `render` |

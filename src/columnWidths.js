@@ -107,6 +107,19 @@ function pinnedWidth(overrides, index) {
  * in the width of "York"; a 60-character URL cannot be narrowed at all, which
  * is why the caller caps this (see maxFloor).
  */
+/**
+ * The text a column's header is measured by. A header may be an element or a
+ * function (drawn by flexRender: an icon before the label), which has no
+ * width of its own to measure — so `headerText` when the column gives it, else
+ * the header when it is text, else the accessor.
+ */
+export function headerTextOf(column) {
+  if (!column) return '';
+  if (typeof column.headerText === 'string') return column.headerText;
+  if (typeof column.header === 'string' || typeof column.header === 'number') return String(column.header);
+  return column.accessor == null ? '' : String(column.accessor);
+}
+
 export function longestToken(text) {
   if (!text) return '';
   var parts = String(text).split(/\s+/);

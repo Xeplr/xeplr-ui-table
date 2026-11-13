@@ -1,6 +1,6 @@
 import { measureColumnDemand, allocateColumnWidths, longestToken,
          WIDTH_NATURAL, WIDTH_SHRUNK, WIDTH_FLOOR, WIDTH_PINNED,
-         resolvePercentWidths } from '../src/columnWidths.js';
+         resolvePercentWidths, headerTextOf } from '../src/columnWidths.js';
 import assert from 'node:assert';
 
 var passed = 0;
@@ -34,6 +34,13 @@ function demand(columns, rows, overrides) {
 }
 
 console.log('\nlongestToken');
+
+test('a header that is not text is measured by headerText, else the accessor', function() {
+  assert.equal(headerTextOf({ accessor: 'packed', header: 'Packed' }), 'Packed');
+  assert.equal(headerTextOf({ accessor: 'packed', header: function() { return null; }, headerText: 'Packed' }), 'Packed');
+  assert.equal(headerTextOf({ accessor: 'packed', header: { type: 'span' } }), 'packed');
+  assert.equal(headerTextOf({ accessor: 'packed' }), 'packed');
+});
 
 test('returns the widest space-delimited run', function() {
   assert.strictEqual(longestToken('New York City'), 'York');
