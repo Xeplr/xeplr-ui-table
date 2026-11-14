@@ -23,6 +23,12 @@ import { createPortal } from 'react-dom';
  * @param {React.ReactNode} props.children - Filter UI content
  * @param {Function} props.onClear   - Called when user clears the filter
  */
+/** Where the panel is put: the nearest themed ancestor (class xeplr-theme-…), else <body>. */
+function themeRoot(el) {
+  var themed = el && el.closest ? el.closest('[class*="xeplr-theme-"]') : null;
+  return themed || document.body;
+}
+
 export default function FilterWrapper({ isActive, children, onClear }) {
   var [open, setOpen] = useState(false);
   var [rect, setRect] = useState(null);
@@ -94,7 +100,10 @@ export default function FilterWrapper({ isActive, children, onClear }) {
         </button>
       </div>
     </div>,
-    document.body
+    // Inside the app's theme (@xeplr/ui-account's .xeplr-theme-* wrapper), not
+    // bare in <body>: there its --xeplr-* colours are not set and the panel
+    // fell back to this package's dark palette on a light page.
+    themeRoot(wrapperRef.current)
   ) : null;
 
   return (

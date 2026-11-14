@@ -286,6 +286,8 @@
   max-height: 60vh;
   overflow: auto;
   background: var(--xeplr-bg-tertiary, #1e1e38);
+  /* Its own text colour: it is not inside the table, so it inherits none. */
+  color: var(--xeplr-text-primary, #e0e0e0);
   border: 1px solid var(--xeplr-border-primary, #3a3a5a);
   border-radius: 6px;
   box-shadow: var(--xeplr-shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.4));
