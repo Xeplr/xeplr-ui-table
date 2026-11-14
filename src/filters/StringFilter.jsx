@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import FilterWrapper from './FilterWrapper.jsx';
+import { NONE, toggleSelection, passesString } from './stringSelection.js';
 
 /**
  * Excel-like string filter: searchable multi-select of unique values + null checks.
@@ -36,14 +37,9 @@ export default function StringFilter({ column }) {
   var selectedSet = new Set(currentFilter.selected);
   var isActive = currentFilter.selected.length > 0 || currentFilter.isNull !== null;
 
+  // As the boxes read: untick one of all to hide it; after Clear All, tick to show (stringSelection).
   function toggleValue(val) {
-    var next = new Set(selectedSet);
-    if (next.has(val)) {
-      next.delete(val);
-    } else {
-      next.add(val);
-    }
-    column.setFilterValue({ selected: Array.from(next), isNull: currentFilter.isNull });
+    column.setFilterValue({ selected: toggleSelection(currentFilter.selected, val, uniqueValues), isNull: currentFilter.isNull });
   }
 
   function selectAll() {
@@ -53,7 +49,7 @@ export default function StringFilter({ column }) {
   function selectNone() {
     // Selecting "none" means selecting all visible as the filter — i.e. show nothing
     // Actually, set selected to a sentinel empty-but-active state
-    column.setFilterValue({ selected: ['__xeplr_none__'], isNull: currentFilter.isNull });
+    column.setFilterValue({ selected: [NONE], isNull: currentFilter.isNull });
   }
 
   function setNullMode(mode) {
@@ -126,17 +122,5 @@ export default function StringFilter({ column }) {
  * Custom filter function for string columns.
  */
 export function stringFilterFn(row, columnId, filterValue) {
-  if (!filterValue) return true;
-
-  var val = row.getValue(columnId);
-  var isNullish = val === null || val === undefined || val === '';
-
-  // Null mode check
-  if (filterValue.isNull === true) return isNullish;
-  if (filterValue.isNull === false && isNullish) return false;
-
-  // Selected values check
-  if (filterValue.selected.length === 0) return true; // no selection = show all
-  if (filterValue.selected[0] === '__xeplr_none__') return false;
-  return filterValue.selected.includes(String(val));
+  return passesString(row.getValue(columnId), filterValue);
 }
