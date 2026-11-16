@@ -1,6 +1,6 @@
 import { measureColumnDemand, allocateColumnWidths, longestToken,
          WIDTH_NATURAL, WIDTH_SHRUNK, WIDTH_FLOOR, WIDTH_PINNED,
-         resolvePercentWidths, headerTextOf } from '../src/columnWidths.js';
+         resolvePercentWidths, headerTextOf, headerChrome, SORT_CARET_ROOM, sortedHeaderText } from '../src/columnWidths.js';
 import assert from 'node:assert';
 
 var passed = 0;
@@ -399,6 +399,33 @@ test('junk percentages are dropped, leaving the column to be measured', function
 test('no container means nothing to take a percentage of', function() {
   assert.strictEqual(resolvePercentWidths({ 0: 50 }, 0), null);
   assert.strictEqual(resolvePercentWidths({ 0: 50 }, -10), null);
+});
+
+// ── Header chrome ──
+// Measured off a real widget: "products_name" is 101.75px of 700 13px text; the
+// header cell has 12px padding a side, a 4px gap, a 24px filter trigger, and
+// the <th> a 1px right border. Without the border the column came out 154px,
+// left the label 101px, and the header broke as "products_nam / e".
+test('header chrome counts the <th> border, the gap and the trigger', function() {
+  var chrome = headerChrome({ cell: 24, th: 1, gap: 4, trigger: 24 });
+  assert.strictEqual(chrome, 53);
+  var natural = Math.ceil(101.75 + chrome);
+  var labelRoom = natural - 1 - 24 - 4 - 24;
+  assert.ok(labelRoom >= 101.75, 'the label gets its whole width: ' + labelRoom);
+});
+
+test('header chrome without a filter trigger keeps the sort caret\'s room', function() {
+  assert.strictEqual(headerChrome({ cell: 24, th: 1, gap: 4, trigger: null }), 25 + SORT_CARET_ROOM);
+});
+
+test('a sorted column is measured with its arrow; the rest as written', function() {
+  var col = { accessor: 'revenue', header: 'Revenue' };
+  assert.strictEqual(sortedHeaderText(col, ['revenue']), 'Revenue \u25BC');
+  assert.strictEqual(sortedHeaderText(col, ['orders']), 'Revenue');
+  assert.strictEqual(sortedHeaderText(col, null), 'Revenue');
+  // The arrow is its own word: the floor stays the label, so a squeezed
+  // column wraps the arrow under the name, never the name mid-word.
+  assert.strictEqual(longestToken(sortedHeaderText(col, ['revenue'])), 'Revenue');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

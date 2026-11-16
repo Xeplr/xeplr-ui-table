@@ -253,6 +253,7 @@ The scrollbar, the scroll position and the layout are the full table's. Scrollin
 - Everything fits → each column gets its natural width; leftover space stays empty.
 - It does not fit → no empty space; every column drops to its floor (its longest word) and the remainder is shared in proportion to what each wanted.
 - Not even the floors fit → floors, and the table scrolls horizontally.
+- **A header never breaks mid-word for want of a pixel.** Its room is its text plus everything else on its line, read off the real cells: the header cell's padding, the `<th>`'s own padding and borders, the gap, and the filter trigger (`headerChrome`). A sorted column is measured with its arrow (`sortedHeaderText`), and re-measured when the sort moves. Why: leaving the `<th>`'s 1px border out made every column 1px short of its header, so "Orders" broke as "Order / s".
 
 `columnWidths: { [leafIndex]: percent }` pins columns to a share of the width the columns divide (after checkbox, expand and actions columns). **By index**, because a pivot's column keys are data and change on refresh. `columnText(row, column)` supplies the displayed text when cells are formatted; `sizingKey` forces a re-measure (a font change cannot be observed); `onColumnSizing` receives each column's natural width, floor, assigned width and reason (`natural`, `shrunk`, `floor`, `pinned`).
 
@@ -291,7 +292,7 @@ There is no margin property: a `<td>` ignores margin.
 
 ## Exports
 
-`XeplrTable`, `CHILD_DISPLAY`, `useTableController`, `useActionsController`, `detectTypes`, `TYPES`, `StringFilter` / `stringFilterFn`, `NumberFilter` / `numberFilterFn`, `DateFilter` / `dateFilterFn`, `BooleanFilter` / `booleanFilterFn`, `FilterWrapper`, `ActionsCell`, `RecordModal`, `RecordDetail`, `ChildTable`, `CellZoom`, `buildChangeSet`, `resolveOperator`, `resolveString`, `resolveNumber`, `resolveDate`, `isNullish`, `resolveCellStyle`, `STYLE_GROUPS`, `STYLE_FIELDS`, `BORDER_SIDES`, `styleField`, `cssLength`, `flattenStyle`, `resolveStyle`, `toCssProperties`, `resolveCellCss`, `useColumnWidths`, `measureColumnDemand`, `allocateColumnWidths`, `resolvePercentWidths`, `longestToken`, `WIDTH_NATURAL`, `WIDTH_SHRUNK`, `WIDTH_FLOOR`, `renderers`, `avatarName`, `tags`, `currency`, `memberChips`, `twoLine`, `statusBadge`, `dateDisplay`, `link`.
+`XeplrTable`, `CHILD_DISPLAY`, `useTableController`, `useActionsController`, `detectTypes`, `TYPES`, `StringFilter` / `stringFilterFn`, `NumberFilter` / `numberFilterFn`, `DateFilter` / `dateFilterFn`, `BooleanFilter` / `booleanFilterFn`, `FilterWrapper`, `ActionsCell`, `RecordModal`, `RecordDetail`, `ChildTable`, `CellZoom`, `buildChangeSet`, `resolveOperator`, `resolveString`, `resolveNumber`, `resolveDate`, `isNullish`, `resolveCellStyle`, `STYLE_GROUPS`, `STYLE_FIELDS`, `BORDER_SIDES`, `styleField`, `cssLength`, `flattenStyle`, `resolveStyle`, `toCssProperties`, `resolveCellCss`, `useColumnWidths`, `measureColumnDemand`, `allocateColumnWidths`, `resolvePercentWidths`, `longestToken`, `headerChrome`, `sortedHeaderText`, `WIDTH_NATURAL`, `WIDTH_SHRUNK`, `WIDTH_FLOOR`, `renderers`, `avatarName`, `tags`, `currency`, `memberChips`, `twoLine`, `statusBadge`, `dateDisplay`, `link`.
 
 ## Tests
 

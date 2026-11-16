@@ -239,7 +239,14 @@ export default function XeplrTable(props) {
   // Content sizing measures the whole dataset's first N rows, not the current
   // page — otherwise every page turn would re-measure and the columns would
   // visibly jump.
+  // The columns whose header shows a sort arrow, by accessor: their header
+  // needs the arrow's room too, or "Revenue ▼" wraps its arrow.
+  var sortedAccessors = (table.getState().sorting || []).map(function(entry) {
+    var column = table.getColumn(entry.id);
+    return column && column.columnDef.accessorKey;
+  }).filter(Boolean);
   var widths = useColumnWidths({
+    sortedColumns: sortedAccessors,
     enabled: props.columnSizing === 'content',
     data: props.data,
     columns: columns,
