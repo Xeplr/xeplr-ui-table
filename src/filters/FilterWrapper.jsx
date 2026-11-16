@@ -15,8 +15,9 @@ import { createPortal } from 'react-dom';
  * cannot read is a filter you cannot use.
  *
  * A portal has no ancestors to be clipped by. The cost is that it no longer
- * moves with the page on its own, so it closes on scroll and resize rather
- * than hanging in the wrong place.
+ * moves with the page on its own, so a scroll of the page or the table moves
+ * it after its trigger (and closes it once the trigger is out of view); a
+ * scroll INSIDE the panel — its own list of values — is just reading it.
  *
  * @param {object}  props
  * @param {boolean} props.isActive   - Whether filter is currently applied
@@ -60,19 +61,29 @@ export default function FilterWrapper({ isActive, children, onClear }) {
       var inPanel = panelRef.current && panelRef.current.contains(e.target);
       if (!inTrigger && !inPanel) setOpen(false);
     }
-    // A portalled panel does not travel with what it is anchored to, so
-    // rather than let it hang somewhere wrong it closes. `true` catches
-    // scrolling in the TABLE, not just the window — the scroll event does not
-    // bubble, so a listener without capture never hears it.
-    function handleScroll() { setOpen(false); }
+    // A portalled panel does not travel with what it is anchored to, so a
+    // scroll moves it after its trigger. `true` catches scrolling in the
+    // TABLE, not just the window — the scroll event does not bubble, so a
+    // listener without capture never hears it. Scrolling the panel's own list
+    // is not a reason to move or close it: it used to close the panel the
+    // moment anyone scrolled down its values.
+    function handleScroll(e) {
+      if (panelRef.current && e && e.target instanceof Node && panelRef.current.contains(e.target)) return;
+      var el = wrapperRef.current;
+      if (!el) return;
+      var r = el.getBoundingClientRect();
+      // The trigger scrolled out of view: nothing left to hang from.
+      if (r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) { setOpen(false); return; }
+      place();
+    }
 
     document.addEventListener('mousedown', handleClick);
     window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
+    window.addEventListener('resize', place);
     return function() {
       document.removeEventListener('mousedown', handleClick);
       window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('resize', place);
     };
   }, [open, place]);
 
