@@ -41,7 +41,7 @@ export {
 // Content-based column widths
 export { default as useColumnWidths } from './useColumnWidths.js';
 export {
-  measureColumnDemand, allocateColumnWidths, resolvePercentWidths, longestToken,
+  measureColumnDemand, allocateColumnWidths, resolvePercentWidths, longestToken, headerChrome, sortedHeaderText,
   WIDTH_NATURAL, WIDTH_SHRUNK, WIDTH_FLOOR
 } from './columnWidths.js';
 

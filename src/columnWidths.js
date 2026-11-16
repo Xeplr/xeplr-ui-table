@@ -100,6 +100,43 @@ function pinnedWidth(overrides, index) {
 }
 
 /**
+ * The room a header's label does NOT get — everything else on its line.
+ *
+ * Every part counts, read off the real cells: the header cell's padding, the
+ * <th>'s own padding and borders (its 1px divider sits inside the column's
+ * width), the gap between the label and the filter trigger, and the trigger.
+ * Leaving the <th> border out made each column exactly 1px short of its
+ * header, so "Orders" broke as "Order / s".
+ *
+ * @param {object} box
+ * @param {number} box.cell    - header cell padding + borders
+ * @param {number} box.th      - the <th>'s padding + borders
+ * @param {number} box.gap     - gap between the label and the trigger
+ * @param {number|null} box.trigger - the filter trigger's width; null when
+ *   the table has none, and the sort caret's room is kept instead
+ */
+export function headerChrome(box) {
+  var fixed = (box.cell || 0) + (box.th || 0);
+  if (box.trigger === null || box.trigger === undefined) return fixed + SORT_CARET_ROOM;
+  return fixed + (box.gap || 0) + box.trigger;
+}
+
+/** Room for the sort caret on a table without filter triggers. */
+export var SORT_CARET_ROOM = 16;
+
+/** The arrow a sorted column's header shows (XeplrTable's sort icon). */
+export var SORT_ARROW = ' \u25BC';
+
+/**
+ * A header's text as it is drawn: a sorted column's carries its arrow, so its
+ * width is measured with it — without, "Revenue ▼" wrapped its arrow.
+ */
+export function sortedHeaderText(column, sortedColumns) {
+  var text = headerTextOf(column);
+  return column && sortedColumns && sortedColumns.indexOf(column.accessor) !== -1 ? text + SORT_ARROW : text;
+}
+
+/**
  * The longest run of characters with no break opportunity in it.
  *
  * This is a column's floor: text can wrap at spaces for free, so a column

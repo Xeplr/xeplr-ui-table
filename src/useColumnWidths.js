@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect, useCallback } from 'react';
-import { measureColumnDemand, allocateColumnWidths, resolvePercentWidths, headerTextOf } from './columnWidths.js';
+import { measureColumnDemand, allocateColumnWidths, resolvePercentWidths, sortedHeaderText, headerChrome } from './columnWidths.js';
 
 /**
  * Content-based column widths — the DOM half. See columnWidths.js for the
@@ -117,6 +117,9 @@ export default function useColumnWidths(opts) {
   var data = opts.data;
   var columns = opts.columns;
   var sizingKey = opts.sizingKey;
+  // Sorted columns' headers carry an arrow; re-measured when the sort moves.
+  var sortedColumns = opts.sortedColumns || [];
+  var sortedSignature = sortedColumns.join('\u0001');
   var onSizing = opts.onSizing;
   var sampleRows = opts.sampleRows || DEFAULTS.sampleRows;
   var overrides = opts.columnWidths;
@@ -173,7 +176,7 @@ export default function useColumnWidths(opts) {
 
     // Cheap bail-out before the expensive part: measuring 200 rows across
     // every column on a render that changed nothing is pure waste.
-    var signature = signatureOf(columns, containerWidth, sizingKey, overrides);
+    var signature = signatureOf(columns, containerWidth, sizingKey, overrides) + '\u0002' + sortedSignature;
     if (signature === signatureRef.current && data === dataRef.current && sizingRef.current) return;
     signatureRef.current = signature;
     dataRef.current = data;
@@ -213,10 +216,14 @@ export default function useColumnWidths(opts) {
 
     // Header chrome: the label shares its row with the sort caret and the
     // filter trigger, so the text needs less room than the cell does.
-    var headerPadding = horizontalPadding(headCell);
     var trigger = table.querySelector('thead .xeplr-table-filter-trigger');
-    if (trigger) headerPadding += trigger.offsetWidth + 4;
-    else headerPadding += 16; // sort caret
+    var triggerBox = trigger && (trigger.closest('.xeplr-table-filter-wrapper') || trigger);
+    var headerPadding = headerChrome({
+      cell: horizontalPadding(headCell),
+      th: horizontalPadding(headCell && headCell.closest('th')),
+      gap: headCell ? parseFloat(window.getComputedStyle(headCell).columnGap) || 0 : 0,
+      trigger: triggerBox ? triggerBox.getBoundingClientRect().width : null
+    });
 
     // The table's own structural columns — expand arrow, select checkbox, row
     // actions — aren't content columns and don't compete for space. Their
@@ -250,7 +257,7 @@ export default function useColumnWidths(opts) {
       columns: columns,
       rows: rows,
       textOf: textOf,
-      headerOf: headerTextOf,
+      headerOf: function(column) { return sortedHeaderText(column, sortedColumns); },
       keyOf: function(column) { return column.accessor; },
       measure: measureWidest,
       bodyFont: BODY_FONTS,
@@ -273,7 +280,7 @@ export default function useColumnWidths(opts) {
     if (onSizing) onSizing(next);
     // State is tracked through refs above, so it is deliberately absent here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, containerWidth, data, columns, textOf, sampleRows, sizingKey, overrides,
+  }, [enabled, containerWidth, data, columns, textOf, sampleRows, sizingKey, sortedSignature, overrides,
       opts.minColumnWidth, opts.maxColumnWidth, opts.maxFloorWidth]);
 
   return { scrollRef: scrollRef, tableRef: tableRef, sizing: enabled ? sizing : null };
