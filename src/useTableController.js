@@ -10,6 +10,7 @@ import {
   createColumnHelper
 } from '@tanstack/react-table';
 import { detectTypes, TYPES } from './detectTypes.js';
+import { bottomRowIds } from './pinRows.js';
 import { stringFilterFn } from './filters/StringFilter.jsx';
 import { numberFilterFn } from './filters/NumberFilter.jsx';
 import { dateFilterFn } from './filters/DateFilter.jsx';
@@ -155,6 +156,14 @@ export default function useTableController(options) {
   var [columnFilters, setColumnFilters] = useState([]);
   var [pagination, setPagination] = useState({ pageIndex: 0, pageSize: pageSize });
 
+  // ROWS KEPT AT THE BOTTOM OF EVERY PAGE (`pinBottomRows(row) → boolean`):
+  // a grand total is the last row of the data, so with pages it was on the
+  // last page only. Pinned, it is drawn under every page's rows and stays
+  // there whatever is sorted or filtered (TanStack row pinning,
+  // keepPinnedRows). By the row's position in `data`, TanStack's own id.
+  var pinBottomRows = options.pinBottomRows;
+  var bottomIds = useMemo(function () { return bottomRowIds(data, pinBottomRows); }, [data, pinBottomRows]);
+
   // ── TanStack table instance ──
   var table = useReactTable({
     data: data,
@@ -162,8 +171,11 @@ export default function useTableController(options) {
     state: {
       sorting: sorting,
       columnFilters: columnFilters,
-      pagination: pagination
+      pagination: pagination,
+      rowPinning: { top: [], bottom: bottomIds }
     },
+    enableRowPinning: bottomIds.length > 0,
+    keepPinnedRows: true,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
