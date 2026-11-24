@@ -186,13 +186,18 @@ export default function XeplrTable(props) {
     sorting: props.sorting,
     onSortingChange: props.onSortingChange,
     enableFiltering: props.enableFiltering,
-    enablePagination: props.enablePagination
+    enablePagination: props.enablePagination,
+    // (row) → true for a row kept at the bottom of every page — a grand total.
+    pinBottomRows: props.pinBottomRows
   });
 
   var enableFiltering = props.enableFiltering !== false;
   var enablePagination = props.enablePagination !== false;
   var headerGroups = table.getHeaderGroups();
-  var rows = table.getRowModel().rows;
+  // Rows the host pins to the bottom (pinBottomRows — a grand total) are
+  // drawn after every page's rows; the page's own rows are the rest.
+  var pinned = table.getBottomRows ? table.getBottomRows() : [];
+  var rows = pinned.length ? table.getCenterRows() : table.getRowModel().rows;
 
   // A consumer that wants a frozen header opts in with its own CSS
   // (`position: sticky; top: 0` on .xeplr-table-th) — this component has no
@@ -595,7 +600,7 @@ export default function XeplrTable(props) {
                 <td className="xeplr-table-empty" colSpan={totalColumns}>No data</td>
               </tr>
             )}
-            {rows.map(function(row) {
+            {rows.concat(pinned).map(function(row) {
               var original = row.original;
               var rowId = getRowId(original);
               var isSelected = actions.selectedIds.has(rowId);

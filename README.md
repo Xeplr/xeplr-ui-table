@@ -59,6 +59,7 @@ The package ships its `src/` as ES modules with JSX and imports its own styleshe
 | `toolbarLeading` | — | `(ctx) => node` after the built-in toolbar buttons |
 | `toolbarActions` | — | `(ctx) => node` replacing Clear Filters / Clear Sort |
 | `rowClassName` | — | `(row) => string` |
+| `pinBottomRows` | — | `(row) => boolean` — rows kept at the **bottom of every page**, whatever is sorted, filtered or paged (a grand total: the last row of the data, which with pages was on the last page only). Drawn like any row (`rowClassName` still applies) after the page's own rows; TanStack row pinning with `keepPinnedRows` |
 | `columnClassName` | — | `(column, index) => string`, applied to the header and every cell of that column |
 | `cellStyle` | — | `({ row, rowIndex, columnKey, value }) => style` — on top of the schema's conditional styles |
 | `headerStyle` | — | `({ columnKey, isGroupHeader, depth }) => style` |
