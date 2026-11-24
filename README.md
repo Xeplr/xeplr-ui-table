@@ -231,6 +231,9 @@ Numeric strings compare as numbers. A host `cellStyle` prop result is merged ove
 | `statusBadge` | `map: { value: { bg, color, border?, label? } }`, `default` | text |
 | `dateDisplay` | `format`: `'date'` (`15 Sep 2026`), `'datetime'`, `'relative'` (`3h ago`, dates after 30 days) | Date or ISO string |
 | `link` | `hrefKey` (renders `<a href={row[hrefKey]}>`) and `target`, or `onClick(row)` | text |
+| `trend` | `format(value, row)` (how the number reads: a percent, a currency …), `absolute` (true: the arrow says the sign, so the number is shown without it), `color(value, row)` (a rule's colour, which wins), `colors` (`{ up, down }`) | number — ▲ green above zero, ▼ red below, nothing for zero or a blank |
+
+**A trend** is one look everywhere: `trendOf(value)` (`'up'`, `'down'` or null), `trendLook(value, ruledColor?, colors?)` → `{ arrow, color }` and `TREND_COLORS` are exported, so a host that shows a single value as a trend (a KPI, a tile) draws it exactly as the `trend` cell does. A rule's colour wins over green/red — that is how "down is good" is said (a refund rate).
 
 Each renderer is `(config) => (ctx) => node`. The `renderers` object is the registry the table reads, so `renderers.myType = (config) => (ctx) => …` adds one.
 

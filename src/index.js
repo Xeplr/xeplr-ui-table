@@ -47,4 +47,8 @@ export {
 
 // Cell renderers (config-driven)
 export { default as renderers } from './renderers/index.js';
-export { avatarName, tags, currency, memberChips, twoLine, statusBadge, dateDisplay, link } from './renderers/index.js';
+export { avatarName, tags, currency, memberChips, twoLine, statusBadge, dateDisplay, link, trend } from './renderers/index.js';
+
+// A number shown as a trend (▲ green up, ▼ red down) — the `trend` renderer's,
+// and any host's that shows one value as a trend, so every trend looks alike.
+export { trendOf, trendLook, TREND_COLORS } from './trend.js';

@@ -6,6 +6,7 @@ import twoLine from './twoLine.jsx';
 import statusBadge from './statusBadge.jsx';
 import dateDisplay from './dateDisplay.jsx';
 import link from './link.jsx';
+import trend from './trend.jsx';
 
 var renderers = {
   avatarName: avatarName,
@@ -15,8 +16,9 @@ var renderers = {
   twoLine: twoLine,
   statusBadge: statusBadge,
   dateDisplay: dateDisplay,
-  link: link
+  link: link,
+  trend: trend
 };
 
 export default renderers;
-export { avatarName, tags, currency, memberChips, twoLine, statusBadge, dateDisplay, link };
+export { avatarName, tags, currency, memberChips, twoLine, statusBadge, dateDisplay, link, trend };
